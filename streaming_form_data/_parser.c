@@ -1413,14 +1413,15 @@ static PyObject* __Pyx_PyObject_CallMethod1(PyObject* obj, PyObject* method_name
 /* append.proto */
 static CYTHON_INLINE int __Pyx_PyObject_Append(PyObject* L, PyObject* x);
 
+/* unicode_tailmatch.proto */
+static int __Pyx_PyUnicode_Tailmatch(
+    PyObject* s, PyObject* substr, Py_ssize_t start, Py_ssize_t end, int direction);
+
 /* IncludeStringH.proto */
 #include <string.h>
 
 /* BytesEquals.proto */
 static CYTHON_INLINE int __Pyx_PyBytes_Equals(PyObject* s1, PyObject* s2, int equals);
-
-/* UnicodeEquals.proto */
-static CYTHON_INLINE int __Pyx_PyUnicode_Equals(PyObject* s1, PyObject* s2, int equals);
 
 /* decode_c_string_utf16.proto */
 static CYTHON_INLINE PyObject *__Pyx_PyUnicode_DecodeUTF16(const char *s, Py_ssize_t size, const char *errors) {
@@ -1457,6 +1458,9 @@ static CYTHON_INLINE int __Pyx_PySequence_ContainsTF(PyObject* item, PyObject* s
     int result = PySequence_Contains(seq, item);
     return unlikely(result < 0) ? result : (result == (eq == Py_EQ));
 }
+
+/* UnicodeEquals.proto */
+static CYTHON_INLINE int __Pyx_PyUnicode_Equals(PyObject* s1, PyObject* s2, int equals);
 
 /* DictGetItem.proto */
 #if PY_MAJOR_VERSION >= 3 && !CYTHON_COMPILING_IN_PYPY
@@ -5487,7 +5491,7 @@ static PyObject *__pyx_pf_19streaming_form_data_7_parser_7_Parser_8on_body(struc
  * 
  *     cdef _part_for(self, str name):             # <<<<<<<<<<<<<<
  *         for part in self.expected_parts:
- *             if part.name == name:
+ *             if name.startswith(part.name):
  */
 
 static PyObject *__pyx_f_19streaming_form_data_7_parser_7_Parser__part_for(struct __pyx_obj_19streaming_form_data_7_parser__Parser *__pyx_v_self, PyObject *__pyx_v_name) {
@@ -5508,7 +5512,7 @@ static PyObject *__pyx_f_19streaming_form_data_7_parser_7_Parser__part_for(struc
  * 
  *     cdef _part_for(self, str name):
  *         for part in self.expected_parts:             # <<<<<<<<<<<<<<
- *             if part.name == name:
+ *             if name.startswith(part.name):
  *                 return part
  */
   if (likely(PyList_CheckExact(__pyx_v_self->expected_parts)) || PyTuple_CheckExact(__pyx_v_self->expected_parts)) {
@@ -5556,19 +5560,23 @@ static PyObject *__pyx_f_19streaming_form_data_7_parser_7_Parser__part_for(struc
     /* "streaming_form_data/_parser.pyx":196
  *     cdef _part_for(self, str name):
  *         for part in self.expected_parts:
- *             if part.name == name:             # <<<<<<<<<<<<<<
+ *             if name.startswith(part.name):             # <<<<<<<<<<<<<<
  *                 return part
  * 
  */
+    if (unlikely(__pyx_v_name == Py_None)) {
+      PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%.30s'", "startswith");
+      __PYX_ERR(0, 196, __pyx_L1_error)
+    }
     __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_part, __pyx_n_s_name); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 196, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_5 = (__Pyx_PyUnicode_Equals(__pyx_t_4, __pyx_v_name, Py_EQ)); if (unlikely(__pyx_t_5 < 0)) __PYX_ERR(0, 196, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyUnicode_Tailmatch(__pyx_v_name, __pyx_t_4, 0, PY_SSIZE_T_MAX, -1); if (unlikely(__pyx_t_5 == ((int)-1))) __PYX_ERR(0, 196, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    if (__pyx_t_5) {
+    if ((__pyx_t_5 != 0)) {
 
       /* "streaming_form_data/_parser.pyx":197
  *         for part in self.expected_parts:
- *             if part.name == name:
+ *             if name.startswith(part.name):
  *                 return part             # <<<<<<<<<<<<<<
  * 
  *     def data_received(self, bytes data):
@@ -5582,7 +5590,7 @@ static PyObject *__pyx_f_19streaming_form_data_7_parser_7_Parser__part_for(struc
       /* "streaming_form_data/_parser.pyx":196
  *     cdef _part_for(self, str name):
  *         for part in self.expected_parts:
- *             if part.name == name:             # <<<<<<<<<<<<<<
+ *             if name.startswith(part.name):             # <<<<<<<<<<<<<<
  *                 return part
  * 
  */
@@ -5592,7 +5600,7 @@ static PyObject *__pyx_f_19streaming_form_data_7_parser_7_Parser__part_for(struc
  * 
  *     cdef _part_for(self, str name):
  *         for part in self.expected_parts:             # <<<<<<<<<<<<<<
- *             if part.name == name:
+ *             if name.startswith(part.name):
  *                 return part
  */
   }
@@ -5603,7 +5611,7 @@ static PyObject *__pyx_f_19streaming_form_data_7_parser_7_Parser__part_for(struc
  * 
  *     cdef _part_for(self, str name):             # <<<<<<<<<<<<<<
  *         for part in self.expected_parts:
- *             if part.name == name:
+ *             if name.startswith(part.name):
  */
 
   /* function exit code */
@@ -14902,6 +14910,35 @@ static CYTHON_INLINE int __Pyx_PyObject_Append(PyObject* L, PyObject* x) {
     return 0;
 }
 
+/* unicode_tailmatch */
+static int __Pyx_PyUnicode_TailmatchTuple(PyObject* s, PyObject* substrings,
+                                          Py_ssize_t start, Py_ssize_t end, int direction) {
+    Py_ssize_t i, count = PyTuple_GET_SIZE(substrings);
+    for (i = 0; i < count; i++) {
+        Py_ssize_t result;
+#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+        result = PyUnicode_Tailmatch(s, PyTuple_GET_ITEM(substrings, i),
+                                     start, end, direction);
+#else
+        PyObject* sub = PySequence_ITEM(substrings, i);
+        if (unlikely(!sub)) return -1;
+        result = PyUnicode_Tailmatch(s, sub, start, end, direction);
+        Py_DECREF(sub);
+#endif
+        if (result) {
+            return (int) result;
+        }
+    }
+    return 0;
+}
+static int __Pyx_PyUnicode_Tailmatch(PyObject* s, PyObject* substr,
+                                     Py_ssize_t start, Py_ssize_t end, int direction) {
+    if (unlikely(PyTuple_Check(substr))) {
+        return __Pyx_PyUnicode_TailmatchTuple(s, substr, start, end, direction);
+    }
+    return (int) PyUnicode_Tailmatch(s, substr, start, end, direction);
+}
+
 /* BytesEquals */
 static CYTHON_INLINE int __Pyx_PyBytes_Equals(PyObject* s1, PyObject* s2, int equals) {
 #if CYTHON_COMPILING_IN_PYPY
@@ -14947,6 +14984,33 @@ static CYTHON_INLINE int __Pyx_PyBytes_Equals(PyObject* s1, PyObject* s2, int eq
         return result;
     }
 #endif
+}
+
+/* decode_c_bytes */
+static CYTHON_INLINE PyObject* __Pyx_decode_c_bytes(
+         const char* cstring, Py_ssize_t length, Py_ssize_t start, Py_ssize_t stop,
+         const char* encoding, const char* errors,
+         PyObject* (*decode_func)(const char *s, Py_ssize_t size, const char *errors)) {
+    if (unlikely((start < 0) | (stop < 0))) {
+        if (start < 0) {
+            start += length;
+            if (start < 0)
+                start = 0;
+        }
+        if (stop < 0)
+            stop += length;
+    }
+    if (stop > length)
+        stop = length;
+    if (unlikely(stop <= start))
+        return __Pyx_NewRef(__pyx_empty_unicode);
+    length = stop - start;
+    cstring += start;
+    if (decode_func) {
+        return decode_func(cstring, length, errors);
+    } else {
+        return PyUnicode_Decode(cstring, length, encoding, errors);
+    }
 }
 
 /* UnicodeEquals */
@@ -15049,33 +15113,6 @@ return_ne:
     #endif
     return (equals == Py_NE);
 #endif
-}
-
-/* decode_c_bytes */
-static CYTHON_INLINE PyObject* __Pyx_decode_c_bytes(
-         const char* cstring, Py_ssize_t length, Py_ssize_t start, Py_ssize_t stop,
-         const char* encoding, const char* errors,
-         PyObject* (*decode_func)(const char *s, Py_ssize_t size, const char *errors)) {
-    if (unlikely((start < 0) | (stop < 0))) {
-        if (start < 0) {
-            start += length;
-            if (start < 0)
-                start = 0;
-        }
-        if (stop < 0)
-            stop += length;
-    }
-    if (stop > length)
-        stop = length;
-    if (unlikely(stop <= start))
-        return __Pyx_NewRef(__pyx_empty_unicode);
-    length = stop - start;
-    cstring += start;
-    if (decode_func) {
-        return decode_func(cstring, length, errors);
-    } else {
-        return PyUnicode_Decode(cstring, length, encoding, errors);
-    }
 }
 
 /* DictGetItem */

@@ -193,7 +193,7 @@ cdef class _Parser:
 
     cdef _part_for(self, str name):
         for part in self.expected_parts:
-            if part.name == name:
+            if name.startswith(part.name):
                 return part
 
     def data_received(self, bytes data):
