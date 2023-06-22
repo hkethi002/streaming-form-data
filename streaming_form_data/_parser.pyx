@@ -92,10 +92,12 @@ cdef class Part:
     """
 
     cdef public str name
+    cdef public object match
     cdef list targets
 
-    def __init__(self, str name, object target):
+    def __init__(self, str name, object match, object target):
         self.name = name
+        self.match = match
         self.targets = [target]
 
     def add_target(self, object target):
@@ -165,17 +167,17 @@ cdef class _Parser:
         self.expected_parts = []
 
         self.active_part = None
-        self.default_part = Part('_default', NullTarget())
+        self.default_part = Part('_default', lambda x: x == "_default", NullTarget())
 
         self._leftover_buffer = None
 
-    def register(self, str name, object target):
+    def register(self, str name, object match, object target):
         part = self._part_for(name)
 
         if part:
             part.add_target(target)
         else:
-            self.expected_parts.append(Part(name, target))
+            self.expected_parts.append(Part(name, match, target))
 
     def set_active_part(self, part, str filename):
         self.active_part = part
@@ -193,7 +195,7 @@ cdef class _Parser:
 
     cdef _part_for(self, str name):
         for part in self.expected_parts:
-            if name.startswith(part.name):
+            if part.match(name):
                 return part
 
     def data_received(self, bytes data):

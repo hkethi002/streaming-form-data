@@ -1,5 +1,5 @@
 from email.message import EmailMessage
-from typing import Mapping
+from typing import Optional, Mapping, Callable
 
 from streaming_form_data._parser import ErrorGroup, _Parser  # type: ignore
 from streaming_form_data.targets import BaseTarget
@@ -46,13 +46,15 @@ class StreamingFormDataParser:
 
         self._running = False
 
-    def register(self, name: str, target: BaseTarget):
+    def register(self, name: str, target: BaseTarget, match: Optional[Callable] = None):
         if self._running:
             raise ParseFailedException(
                 "Registering parts not allowed while parser is running"
             )
 
-        self._parser.register(name, target)
+        def name_match(x):
+            return name == x
+        self._parser.register(name, match or name_match, target)
 
     def data_received(self, data: bytes):
         if not self._running:
