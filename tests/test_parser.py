@@ -912,3 +912,22 @@ def test_leading_crlf():
     parser.data_received(b"\r\n\r\n" + encoder.to_string())
 
     assert target.value == b"hello world"
+
+
+def test_lambda_match():
+    target = ValueTarget()
+
+    encoder = MultipartEncoder(
+        fields={
+            "good value": "hello world",
+            "bad value": "nope",
+            "another good value": ", hello there",
+        }
+    )
+
+    parser = StreamingFormDataParser(headers={"Content-Type": encoder.content_type})
+    parser.register("not bad value", target, match=lambda x: x != "bad value")
+
+    parser.data_received(b"\r\n\r\n" + encoder.to_string())
+
+    assert target.value == b"hello world, hello there"
