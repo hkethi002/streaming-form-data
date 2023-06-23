@@ -1,5 +1,6 @@
 import hashlib
 from pathlib import Path
+import smart_open  # type: ignore
 from typing import Callable, List, Optional
 
 
@@ -80,20 +81,18 @@ class ValueTarget(BaseTarget):
 
     @property
     def value(self):
-        return b''.join(self._values)
+        return b"".join(self._values)
 
 
 class FileTarget(BaseTarget):
     """FileTarget writes (streams) the input to an on-disk file."""
 
-    def __init__(
-        self, filename: str, allow_overwrite: bool = True, *args, **kwargs
-    ):
+    def __init__(self, filename: str, allow_overwrite: bool = True, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.filename = filename
 
-        self._mode = 'wb' if allow_overwrite else 'xb'
+        self._mode = "wb" if allow_overwrite else "xb"
         self._fd = None
 
     def on_start(self):
@@ -113,17 +112,13 @@ class DirectoryTarget(BaseTarget):
     directory."""
 
     def __init__(
-        self,
-        directory_path: str,
-        allow_overwrite: bool = True,
-        *args,
-        **kwargs
+        self, directory_path: str, allow_overwrite: bool = True, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
 
         self.directory_path = directory_path
 
-        self._mode = 'wb' if allow_overwrite else 'xb'
+        self._mode = "wb" if allow_overwrite else "xb"
         self._fd = None
         self.multipart_filenames: List[str] = []
         self.multipart_content_types: List[str] = []
@@ -135,9 +130,7 @@ class DirectoryTarget(BaseTarget):
 
         # Path().resolve().name only keeps file name to prevent path traversal
         self.multipart_filename = Path(self.multipart_filename).resolve().name
-        self._fd = open(
-            Path(self.directory_path) / self.multipart_filename, self._mode
-        )
+        self._fd = open(Path(self.directory_path) / self.multipart_filename, self._mode)
 
     def on_data_received(self, chunk: bytes):
         if self._fd:
@@ -164,3 +157,31 @@ class SHA256Target(BaseTarget):
     @property
     def value(self):
         return self._hash.hexdigest()
+
+
+class S3Target(BaseTarget):
+    """
+    S3Target enables chunked uploads to S3 buckets (using smart_open)"""
+
+    def __init__(self, file_path, mode, transport_params=None, **kwargs):
+        super().__init__(**kwargs)
+
+        self._file_path = file_path
+        self._mode = mode
+        self._transport_params = transport_params
+        self._fd = None
+
+    def on_start(self):
+        self._fd = smart_open.open(
+            self._file_path,
+            self._mode,
+            transport_params=self._transport_params,
+        )
+
+    def on_data_received(self, chunk: bytes):
+        if self._fd:
+            self._fd.write(chunk)
+
+    def on_finish(self):
+        if self._fd:
+            self._fd.close()
